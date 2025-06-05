@@ -898,7 +898,8 @@ class OpenAIServingChat(OpenAIServing):
         request_metadata: RequestResponseMetadata,
     ) -> Union[ErrorResponse, ChatCompletionResponse]:
 
-        created_time = int(time.time())
+        request_time = time.time()
+        created_time = int(request_time)
         final_res: Optional[RequestOutput] = None
 
         try:
@@ -1088,6 +1089,17 @@ class OpenAIServingChat(OpenAIServing):
             prompt_logprobs=clamp_prompt_logprobs(final_res.prompt_logprobs),
             kv_transfer_params=final_res.kv_transfer_params,
         )
+
+        response_time = time.time()
+        self.metrics_saver.save_chat_request(request)
+        self.metrics_saver.save_chat_response(response)
+        self.metrics_saver.save_usage(usage)
+        self.metrics_saver.save_metadata({
+            "request_id": request_id,
+            "request_time": request_time,
+            "response_time": response_time,
+            "elapsed_time": response_time - request_time,
+        })
 
         return response
 

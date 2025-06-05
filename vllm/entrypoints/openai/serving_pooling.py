@@ -84,7 +84,8 @@ class OpenAIServingPooling(OpenAIServing):
 
         model_name = self._get_model_name(request.model)
         request_id = f"pool-{self._base_request_id(raw_request)}"
-        created_time = int(time.time())
+        request_time = time.time()
+        created_time = int(request_time)
 
         truncate_prompt_tokens = request.truncate_prompt_tokens
 
@@ -193,6 +194,17 @@ class OpenAIServingPooling(OpenAIServing):
         except ValueError as e:
             # TODO: Use a vllm-specific Validation Error
             return self.create_error_response(str(e))
+
+        response_time = time.time()
+        self.metrics_saver.save_chat_request(request)
+        self.metrics_saver.save_chat_response(response)
+        self.metrics_saver.save_usage(response.usage)
+        self.metrics_saver.save_metadata({
+            "request_id": request_id,
+            "request_time": request_time,
+            "response_time": response_time,
+            "elapsed_time": response_time - request_time,
+        })
 
         return response
 

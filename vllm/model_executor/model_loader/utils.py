@@ -6,7 +6,6 @@ import warnings
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Optional
-from functools import cache
 
 import torch
 import transformers
@@ -215,7 +214,7 @@ def resolve_transformers_arch(model_config: ModelConfig,
             architectures[i] = "TransformersForCausalLM"
     return architectures
 
-@cache
+
 def get_model_architecture(
         model_config: ModelConfig) -> tuple[type[nn.Module], str]:
     architectures = getattr(model_config.hf_config, "architectures", [])

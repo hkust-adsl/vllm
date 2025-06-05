@@ -296,7 +296,8 @@ class ServingScores(OpenAIServing):
             return error_check_ret
 
         request_id = f"score-{self._base_request_id(raw_request)}"
-        created_time = int(time.time())
+        request_time = time.time()
+        created_time = int(request_time)
 
         try:
             final_res_batch = await self._run_scoring(
@@ -308,12 +309,23 @@ class ServingScores(OpenAIServing):
                 request.truncate_prompt_tokens,
             )
 
-            return self.request_output_to_score_response(
+            response = self.request_output_to_score_response(
                 final_res_batch,
                 request_id,
                 created_time,
                 self._get_model_name(request.model),
             )
+            response_time = time.time()
+            self.metrics_saver.save_chat_request(request)
+            self.metrics_saver.save_chat_response(response)
+            self.metrics_saver.save_usage(response.usage)
+            self.metrics_saver.save_metadata({
+                "request_id": request_id,
+                "request_time": request_time,
+                "response_time": response_time,
+                "elapsed_time": response_time - request_time,
+            })
+            return response
         except asyncio.CancelledError:
             return self.create_error_response("Client disconnected")
         except ValueError as e:
@@ -338,6 +350,7 @@ class ServingScores(OpenAIServing):
         if error_check_ret is not None:
             return error_check_ret
 
+        request_time = time.time()
         request_id = f"rerank-{self._base_request_id(raw_request)}"
         documents = request.documents
         top_n = request.top_n if request.top_n > 0 else len(documents)
@@ -351,13 +364,25 @@ class ServingScores(OpenAIServing):
                 raw_request,
                 request.truncate_prompt_tokens,
             )
-            return self.request_output_to_rerank_response(
+            response = self.request_output_to_rerank_response(
                 final_res_batch,
                 request_id,
                 self._get_model_name(request.model),
                 documents,
                 top_n,
             )
+            response_time = time.time()
+            self.metrics_saver.save_chat_request(request)
+            self.metrics_saver.save_chat_response(response)
+            self.metrics_saver.save_usage(response.usage)
+            self.metrics_saver.save_metadata({
+                "request_id": request_id,
+                "request_time": request_time,
+                "response_time": response_time,
+                "elapsed_time": response_time - request_time,
+            })
+            
+            return response
         except asyncio.CancelledError:
             return self.create_error_response("Client disconnected")
         except ValueError as e:

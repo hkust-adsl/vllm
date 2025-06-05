@@ -124,6 +124,23 @@ class EmbeddingMixin(OpenAIServing):
             total_tokens=num_prompt_tokens,
         )
 
+        request_metrics = [res.metrics for res in ctx.final_res_batch if res is not None]
+        request_ids = [res.request_id for res in ctx.final_res_batch if res is not None]
+        # Save request metrics in another process
+        self.metrics_saver.save_request_metrics(request_metrics, request_ids)
+        self.metrics_saver.save_usage(usage)
+        self.metrics_saver.save_metadata(
+            {
+                "request_id": ctx.request_id,
+                "prompt_tokens": [
+                    len(res.prompt_token_ids)
+                    for res in ctx.final_res_batch
+                    if res is not None
+                ],
+                "usage": usage.model_dump(),
+            }
+        )
+
         return EmbeddingResponse(
             id=ctx.request_id,
             created=ctx.created_time,
