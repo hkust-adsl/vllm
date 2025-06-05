@@ -114,13 +114,19 @@ class ClassificationMixin(OpenAIServing):
             total_tokens=num_prompt_tokens,
         )
 
-        return ClassificationResponse(
+        response = ClassificationResponse(
             id=ctx.request_id,
             created=ctx.created_time,
             model=ctx.model_name,
             data=items,
             usage=usage,
         )
+
+        self.metrics_saver.save_chat_request(ctx.request)
+        self.metrics_saver.save_chat_response(response)
+        self.metrics_saver.save_usage(usage)
+
+        return response
 
 
 class ServingClassification(ClassificationMixin):

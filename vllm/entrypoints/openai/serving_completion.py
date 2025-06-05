@@ -106,7 +106,8 @@ class OpenAIServingCompletion(OpenAIServing):
                 "Echo is unsupported with prompt embeds.")
 
         request_id = f"cmpl-{self._base_request_id(raw_request)}"
-        created_time = int(time.time())
+        request_time = time.time()
+        created_time = int(request_time)
 
         request_metadata = RequestResponseMetadata(request_id=request_id)
         if raw_request:
@@ -275,6 +276,16 @@ class OpenAIServingCompletion(OpenAIServing):
                 tokenizer,
                 request_metadata,
             )
+            response_time = time.time()
+            self.metrics_saver.save_chat_request(request)
+            self.metrics_saver.save_chat_response(response)
+            self.metrics_saver.save_usage(response.usage)
+            self.metrics_saver.save_metadata({
+                "request_id": request_id,
+                "request_time": request_time,
+                "response_time": response_time,
+                "elapsed_time": response_time - request_time,
+            })
         except asyncio.CancelledError:
             return self.create_error_response("Client disconnected")
         except ValueError as e:
