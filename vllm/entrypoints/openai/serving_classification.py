@@ -3,6 +3,7 @@
 
 from http import HTTPStatus
 from typing import Optional, Union, cast
+import time
 
 import numpy as np
 from fastapi import Request
@@ -122,10 +123,6 @@ class ClassificationMixin(OpenAIServing):
             usage=usage,
         )
 
-        self.metrics_saver.save_chat_request(ctx.request)
-        self.metrics_saver.save_chat_response(response)
-        self.metrics_saver.save_usage(usage)
-
         return response
 
 
@@ -152,6 +149,7 @@ class ServingClassification(ClassificationMixin):
         request: ClassificationRequest,
         raw_request: Request,
     ) -> Union[ClassificationResponse, ErrorResponse]:
+        request_time = time.time()
         model_name = self._get_model_name(request.model)
         request_id = (f"{self.request_id_prefix}-"
                       f"{self._base_request_id(raw_request)}")
@@ -163,4 +161,18 @@ class ServingClassification(ClassificationMixin):
             request_id=request_id,
         )
 
-        return await super().handle(ctx)  # type: ignore
+        response = await super().handle(ctx)  # type: ignore
+
+        response_time = time.time()
+        self.metrics_saver.save_chat_request(request)
+        self.metrics_saver.save_chat_response(response)
+        self.metrics_saver.save_usage(response.usage)
+        self.metrics_saver.save_metadata({
+            "request_id": request_id,
+            "usage": response.usage.model_dump(),
+            "request_time": request_time,
+            "response_time": response_time,
+            "elapsed_time": response_time - request_time,
+        })
+
+        return response
