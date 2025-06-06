@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import base64
-from typing import Final, Literal, Optional, Union, cast
+from typing import Final, Literal, Optional, Union, cast, Dict
+import time
 
 import numpy as np
 from fastapi import Request
@@ -25,6 +26,7 @@ from vllm.outputs import (EmbeddingOutput, EmbeddingRequestOutput,
                           PoolingRequestOutput)
 
 logger = init_logger(__name__)
+req_id_request_time: Dict[str, float] = {}
 
 
 def _get_embedding(
@@ -124,6 +126,8 @@ class EmbeddingMixin(OpenAIServing):
             total_tokens=num_prompt_tokens,
         )
 
+        response_time = time.time()
+        request_time = req_id_request_time.pop(ctx.request_id, response_time)
         request_metrics = [res.metrics for res in ctx.final_res_batch if res is not None]
         request_ids = [res.request_id for res in ctx.final_res_batch if res is not None]
         # Save request metrics in another process
@@ -132,12 +136,15 @@ class EmbeddingMixin(OpenAIServing):
         self.metrics_saver.save_metadata(
             {
                 "request_id": ctx.request_id,
+                "usage": usage.model_dump(),
+                "request_time": request_time,
+                "response_time": response_time,
+                "elapsed_time": response_time - request_time,
                 "prompt_tokens": [
                     len(res.prompt_token_ids)
                     for res in ctx.final_res_batch
                     if res is not None
                 ],
-                "usage": usage.model_dump(),
             }
         )
 
@@ -182,9 +189,11 @@ class OpenAIServingEmbedding(EmbeddingMixin):
         See https://platform.openai.com/docs/api-reference/embeddings/create
         for the API specification. This API mimics the OpenAI Embedding API.
         """
+        request_time = time.time()
         model_name = self._get_model_name(request.model)
         request_id = (f"{self.request_id_prefix}-"
                       f"{self._base_request_id(raw_request)}")
+        req_id_request_time[request_id] = request_time
 
         ctx = EmbeddingServeContext(
             request=request,

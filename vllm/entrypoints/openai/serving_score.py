@@ -321,6 +321,7 @@ class ServingScores(OpenAIServing):
             self.metrics_saver.save_usage(response.usage)
             self.metrics_saver.save_metadata({
                 "request_id": request_id,
+                "usage": response.usage.model_dump(),
                 "request_time": request_time,
                 "response_time": response_time,
                 "elapsed_time": response_time - request_time,
@@ -377,6 +378,7 @@ class ServingScores(OpenAIServing):
             self.metrics_saver.save_usage(response.usage)
             self.metrics_saver.save_metadata({
                 "request_id": request_id,
+                "usage": response.usage.model_dump(),
                 "request_time": request_time,
                 "response_time": response_time,
                 "elapsed_time": response_time - request_time,
