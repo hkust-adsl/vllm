@@ -1286,7 +1286,7 @@ async def init_app_state(
         expand_tools_even_if_tool_choice_none,
         tool_parser=args.tool_call_parser,
         reasoning_parser=args.reasoning_parser,
-        enable_prompt_tokens_details=args.enable_prompt_tokens_details,
+        enable_prompt_tokens_details=True,
         enable_force_include_usage=args.enable_force_include_usage,
     ) if model_config.runner_type == "generate" else None
     state.openai_serving_completion = OpenAIServingCompletion(
