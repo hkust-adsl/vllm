@@ -358,11 +358,13 @@ class PoolingRequestOutput(Generic[_O]):
     """
 
     def __init__(self, request_id: str, outputs: _O,
-                 prompt_token_ids: list[int], finished: bool):
+                 prompt_token_ids: list[int], finished: bool,
+                 metrics: Optional[RequestMetrics] = None):
         self.request_id = request_id
         self.prompt_token_ids = prompt_token_ids
         self.finished = finished
         self.outputs = outputs
+        self.metrics = metrics
 
     @staticmethod
     def from_seq_group(seq_group: SequenceGroup) -> "PoolingRequestOutput":
@@ -373,9 +375,12 @@ class PoolingRequestOutput(Generic[_O]):
         output = PoolingOutput(data)
         prompt_token_ids = seq_group.prompt_token_ids
         finished = seq_group.is_finished()
+        finished_time = time.time() if finished else None
+        seq_group.set_finished_time(finished_time)
 
         return PoolingRequestOutput(seq_group.request_id, output,
-                                    prompt_token_ids, finished)
+                                    prompt_token_ids, finished,
+                                    metrics=seq_group.metrics)
 
     def __repr__(self):
         """

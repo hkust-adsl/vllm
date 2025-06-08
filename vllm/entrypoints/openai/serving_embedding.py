@@ -83,7 +83,8 @@ class OpenAIServingEmbedding(OpenAIServing):
 
         model_name = self._get_model_name(request.model)
         request_id = f"embd-{self._base_request_id(raw_request)}"
-        created_time = int(time.time())
+        request_time = time.time()
+        created_time = int(request_time)
 
         truncate_prompt_tokens = None
 
@@ -198,6 +199,27 @@ class OpenAIServingEmbedding(OpenAIServing):
                 created_time,
                 model_name,
                 encoding_format,
+            )
+
+            response_time = time.time()
+            request_metrics = [res.metrics for res in final_res_batch if res is not None]
+            request_ids = [res.request_id for res in final_res_batch if res is not None]
+            # Save request metrics in another process
+            self.metrics_saver.save_request_metrics(request_metrics, request_ids)
+            self.metrics_saver.save_usage(response.usage)
+            self.metrics_saver.save_metadata(
+                {
+                    "request_id": request_id,
+                    "usage": response.usage.model_dump(),
+                    "request_time": request_time,
+                    "response_time": response_time,
+                    "elapsed_time": response_time - request_time,
+                    "prompt_tokens": [
+                        len(res.prompt_token_ids)
+                        for res in final_res_batch
+                        if res is not None
+                    ],
+                }
             )
         except asyncio.CancelledError:
             return self.create_error_response("Client disconnected")

@@ -83,7 +83,8 @@ class OpenAIServingPooling(OpenAIServing):
 
         model_name = self._get_model_name(request.model)
         request_id = f"pool-{self._base_request_id(raw_request)}"
-        created_time = int(time.time())
+        request_time = time.time()
+        created_time = int(request_time)
 
         truncate_prompt_tokens = None
 
@@ -194,6 +195,18 @@ class OpenAIServingPooling(OpenAIServing):
                 model_name,
                 encoding_format,
             )
+
+            response_time = time.time()
+            self.metrics_saver.save_chat_request(request)
+            self.metrics_saver.save_chat_response(response)
+            self.metrics_saver.save_usage(response.usage)
+            self.metrics_saver.save_metadata({
+                "request_id": request_id,
+                "usage": response.usage.model_dump(),
+                "request_time": request_time,
+                "response_time": response_time,
+                "elapsed_time": response_time - request_time,
+            })
         except asyncio.CancelledError:
             return self.create_error_response("Client disconnected")
         except ValueError as e:

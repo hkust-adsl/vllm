@@ -333,7 +333,7 @@ async def main(args):
         request_logger=request_logger,
         chat_template=None,
         chat_template_content_format="auto",
-        enable_prompt_tokens_details=args.enable_prompt_tokens_details,
+        enable_prompt_tokens_details=True,
     ) if model_config.runner_type == "generate" else None
     openai_serving_embedding = OpenAIServingEmbedding(
         engine,

@@ -35,6 +35,7 @@ from vllm.entrypoints.openai.protocol import (ChatCompletionRequest,
                                               TranscriptionRequest)
 from vllm.entrypoints.openai.serving_models import OpenAIServingModels
 from vllm.entrypoints.openai.tool_parsers import ToolParser
+from vllm.entrypoints.openai.metrics_saver import MetricsSaverClient
 # yapf: enable
 from vllm.inputs import TokensPrompt
 from vllm.inputs.parse import parse_and_batch_prompt
@@ -99,6 +100,7 @@ class OpenAIServing:
         self._tokenize_prompt_input_or_inputs_async = make_async(
             self._tokenize_prompt_input_or_inputs,
             executor=self._tokenizer_executor)
+        self.metrics_saver = MetricsSaverClient()
 
     def create_error_response(
             self,
