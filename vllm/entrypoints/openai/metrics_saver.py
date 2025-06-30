@@ -54,9 +54,11 @@ class MetricsSaverClient:
         """Add request to the queue for processing"""
         self.queue.put(("request", request))
 
-    def save_chat_request(self, request: ChatCompletionRequest):
+    def save_chat_request(
+        self, request: ChatCompletionRequest, request_id: Optional[str] = None
+    ):
         """Add chatting request to the queue for processing"""
-        self.queue.put(("chat_request", request))
+        self.queue.put(("chat_request", request, request_id))
 
     def shutdown(self):
         """Clean shutdown of the metrics saver"""
@@ -81,7 +83,7 @@ def _save_metrics_worker(queue: multiprocessing.Queue, save_dir: Optional[str] =
             elif item[0] == "request":
                 saver.save_request(item[1])
             elif item[0] == "chat_request":
-                saver.save_chat_request(item[1])
+                saver.save_chat_request(item[1], item[2] if len(item) > 2 else None)
             elif item[0] == "usage":
                 saver.save_usage(item[1])
             elif item[0] == "response":
@@ -108,7 +110,15 @@ class MetricsSaver:
         with open(save_path, "a+") as f:
             f.write(f"{request.model_dump_json()}\n")
 
-    def save_chat_request(self, request: ChatCompletionRequest):
+    def save_chat_request(
+        self, request: ChatCompletionRequest, request_id: Optional[str] = None
+    ):
+        if request_id is not None:
+            try:
+                request.request_id = request_id
+            except AttributeError:
+                # If request does not have request_id, we can skip setting it
+                pass
         save_path = os.path.join(self.save_dir, "llm_chat_request.txt")
         with open(save_path, "a+") as f:
             f.write(f"{request.model_dump_json()}\n")
