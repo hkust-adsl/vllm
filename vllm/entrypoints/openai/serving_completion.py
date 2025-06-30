@@ -277,7 +277,7 @@ class OpenAIServingCompletion(OpenAIServing):
                 request_metadata,
             )
             response_time = time.time()
-            self.metrics_saver.save_chat_request(request)
+            self.metrics_saver.save_chat_request(request, request_id)
             self.metrics_saver.save_chat_response(response)
             self.metrics_saver.save_usage(response.usage)
             self.metrics_saver.save_metadata({
