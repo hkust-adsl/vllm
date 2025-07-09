@@ -62,7 +62,7 @@ class OpenAIServingChat(OpenAIServing):
         reasoning_parser: Optional[str] = None,
         enable_auto_tools: bool = False,
         tool_parser: Optional[str] = None,
-        enable_prompt_tokens_details: bool = False,
+        enable_prompt_tokens_details: bool = True,
     ) -> None:
         super().__init__(engine_client=engine_client,
                          model_config=model_config,
